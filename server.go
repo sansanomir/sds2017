@@ -2,7 +2,10 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
+	"log"
 	"net/http"
+	"os"
 )
 
 func redirectToHttps(w http.ResponseWriter, r *http.Request) {
@@ -11,7 +14,30 @@ func redirectToHttps(w http.ResponseWriter, r *http.Request) {
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Hi there!")
+	if r.RequestURI == "/read" {
+		fmt.Fprintf(w, r.RequestURI)
+		file, err := os.Open("datos.txt")
+		if err != nil {
+			panic(err)
+		}
+		defer func() {
+			if err := file.Close(); err != nil {
+				panic(err)
+			}
+		}()
+		str, err := ioutil.ReadAll(file)
+		fmt.Println(string(str))
+	} else if r.RequestURI == "/write" {
+		fmt.Fprintf(w, r.RequestURI)
+		fileW, err := os.Create("result.txt")
+		if err != nil {
+			log.Fatal("Cannot create file", err)
+		}
+		defer fileW.Close()
+		fmt.Fprintf(fileW, "user: Pepe\nmasterKey: asdf\n")
+	} else {
+		fmt.Fprintf(w, "I don't know")
+	}
 }
 
 func main() {
