@@ -1,14 +1,47 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
-	"encoding/json"
-	"io"
 )
+
+type Entrada struct {
+	User       string
+	Password   string
+	Comentario string
+}
+
+type Usuario struct {
+	Sal       string
+	MasterKey string
+	Username  string
+	Lista     []Entrada
+}
+
+func login(user string, password string) bool {
+	usuarios := map[int]Usuario{}
+	file, err := os.Open("bd.txt")
+	if err != nil {
+		panic(err)
+	}
+	defer file.Close()
+	str, err := ioutil.ReadAll(file)
+	if erru := json.Unmarshal(str, &usuarios); erru != nil {
+		panic(erru)
+	}
+	for key, value := range usuarios {
+		if value.Username == user && value.MasterKey == password {
+			return true
+		}
+	}
+	return false
+}
 
 func chk(e error) {
 	if e != nil {
@@ -40,10 +73,18 @@ func handler(w http.ResponseWriter, req *http.Request) {
 	switch req.Form.Get("cmd") { // comprobamos comando desde el cliente
 	case "hola": // ** registro
 		response(w, true, "Hola "+req.Form.Get("mensaje"))
-	case "Login": {
-		mensaje := "Usuario: " + req.Form.Get("Usuario") + ", Password: " + req.Form.Get("Password")
-		response(w, true, mensaje)
-	}
+	case "Login":
+		{
+			mensaje := ""
+			if login(req.Form.Get("Usuario"), req.Form.Get("Password")) {
+				fmt.Println("Login ok")
+				mensaje = "Usuario: " + req.Form.Get("Usuario") + ", Password: " + req.Form.Get("Password")
+			} else {
+				fmt.Println("Login error")
+				mensaje = "Error"
+			}
+			response(w, true, mensaje)
+		}
 	default:
 		response(w, false, "Comando inválido")
 	}
@@ -93,7 +134,7 @@ func main() {
 	mux := http.NewServeMux()
 	mux.Handle("/", http.HandlerFunc(handler))
 
-	srv := &http.Server{Addr: ":10443",  Handler: mux}
+	srv := &http.Server{Addr: ":10443", Handler: mux}
 
 	go func() {
 		if err := srv.ListenAndServeTLS("cert.pem", "key.pem"); err != nil {
