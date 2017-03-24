@@ -37,10 +37,35 @@ func login(user string, password string) bool {
 	}
 	for key, value := range usuarios {
 		if value.Username == user && value.MasterKey == password {
+			fmt.Print(key)
 			return true
 		}
 	}
 	return false
+}
+
+func registro(user string, password string) bool {
+	usuarios := map[int]Usuario{}
+	file, err := os.Open("bd.txt")
+	if err != nil {
+		panic(err)
+	}
+	defer file.Close()
+	str, err := ioutil.ReadAll(file)
+	if erru := json.Unmarshal(str, &usuarios); erru != nil {
+		panic(erru)
+	}
+	var ultimo int
+	for key, value := range usuarios {
+		fmt.Println(key)
+		if value.Username == user {
+			return false
+		}
+		ultimo = key
+	}
+	ultimo = ultimo + 1 //id que tiene que tener en la bd
+	fmt.Println(ultimo)
+	return true
 }
 
 func chk(e error) {
@@ -71,19 +96,33 @@ func handler(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "text/plain") // cabecera estándar
 
 	switch req.Form.Get("cmd") { // comprobamos comando desde el cliente
-	case "hola": // ** registro
-		response(w, true, "Hola "+req.Form.Get("mensaje"))
+	case "Registro":
+		{
+			mensaje := ""
+			if registro(req.Form.Get("Usuario"), req.Form.Get("Password")) {
+				fmt.Println("Registro ok")
+				mensaje = "Usuario: " + req.Form.Get("Usuario") + ", Password: " + req.Form.Get("Password")
+				response(w, true, mensaje)
+			} else {
+				fmt.Println("Error en el registro")
+				mensaje = "Usuario ya existe"
+				response(w, false, mensaje)
+			}
+		}
+
 	case "Login":
 		{
 			mensaje := ""
 			if login(req.Form.Get("Usuario"), req.Form.Get("Password")) {
 				fmt.Println("Login ok")
 				mensaje = "Usuario: " + req.Form.Get("Usuario") + ", Password: " + req.Form.Get("Password")
+				response(w, true, mensaje)
 			} else {
 				fmt.Println("Login error")
-				mensaje = "Error"
+				mensaje = "Usuario y/o password incorrecto"
+				response(w, false, mensaje)
 			}
-			response(w, true, mensaje)
+
 		}
 	default:
 		response(w, false, "Comando inválido")
