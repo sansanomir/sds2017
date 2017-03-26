@@ -55,16 +55,28 @@ func registro(user string, password string) bool {
 	if erru := json.Unmarshal(str, &usuarios); erru != nil {
 		panic(erru)
 	}
-	var ultimo int
+	//comprobamos si existe el usuario
 	for key, value := range usuarios {
-		fmt.Println(key)
 		if value.Username == user {
+			fmt.Println(key)
 			return false
 		}
-		ultimo = key
 	}
-	ultimo = ultimo + 1 //id que tiene que tener en la bd
-	fmt.Println(ultimo)
+	var lista []Entrada
+	usuario_nuevo := Usuario{Sal: "sal", MasterKey: password, Username: user, Lista: lista}
+	usuarios[len(usuarios)+1] = usuario_nuevo //añadimos el nuevo usuario al map
+	usuarios_json, err := json.Marshal(usuarios)
+	if err != nil {
+		fmt.Println("Error marshal: ", err)
+	}
+
+	file2, err := os.Open("bd.txt")
+	if err != nil {
+		panic(err)
+	}
+	defer file2.Close()
+	ioutil.WriteFile("bd.txt", usuarios_json, 0644)
+
 	return true
 }
 

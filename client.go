@@ -79,6 +79,7 @@ func registro() bool {
 	r, err := client.PostForm("https://localhost:10443", data) // enviamos por POST
 	chk(err)
 	io.Copy(os.Stdout, r.Body) // mostramos el cuerpo de la respuesta (es un reader)
+
 	return true
 }
 
