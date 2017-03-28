@@ -12,6 +12,7 @@ import (
 )
 
 type Entrada struct {
+	Sitio      string
 	User       string
 	Password   string
 	Comentario string

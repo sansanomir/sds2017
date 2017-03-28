@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -51,12 +52,54 @@ func login() bool {
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
 	client := &http.Client{Transport: tr}
-	r, err := client.PostForm("https://localhost:10443", data) // enviamos por POST
-	chk(err)
-	io.Copy(os.Stdout, r.Body) // mostramos el cuerpo de la respuesta (es un reader)
-	fmt.Println()
+	resp, err := client.PostForm("https://localhost:10443", data) // enviamos por POST
+	if err != nil {
+		panic(err)
+	}
+	defer resp.Body.Close()
+	io.Copy(os.Stdout, resp.Body) // mostramos el cuerpo de la respuesta (es un reader)
+	body, err := ioutil.ReadAll(resp.Body)
+	fmt.Println("Cuerpo", body)
 	return true
 
+}
+
+func menuprincipal() {
+
+	var opcion int
+	for opcion != 4 {
+		fmt.Println("--- Sesión iniciada ---")
+		fmt.Println("Elige la opción que desea realizar: ")
+		fmt.Println("1 - Consultar una cuenta.")
+		fmt.Println("2 - Añadir nueva cuenta.")
+		fmt.Println("3 - Eliminar una cuenta.")
+		fmt.Println("4 - Salir.")
+		fmt.Print("Opción: ")
+		fmt.Scanf("%d\n", &opcion)
+
+		switch opcion {
+		case 1:
+			{
+				//Consultar
+			}
+		case 2:
+			{
+				//Añadir
+			}
+		case 3:
+			{
+				//Eliminar
+			}
+		case 4:
+			{
+				//Salir. No hace nada
+			}
+		default:
+			{
+				fmt.Println("Opción incorrecta. Debe ser un valor entre 1 y 3")
+			}
+		}
+	}
 }
 
 func registro() bool {
@@ -85,19 +128,25 @@ func registro() bool {
 
 func main() {
 
-	opcion := menu()
+	salir := false
+	for salir == false {
+		opcion := menu()
 
-	switch opcion {
-	case 1:
-		{
-			login()
+		switch opcion {
+		case 1:
+			{
+				if logueado := login(); logueado {
+					menuprincipal()
+				}
+			}
+		case 2:
+			{
+				registro()
+			}
+		default:
+			salir = true
+			fmt.Println("Cerrando cliente...")
 		}
-	case 2:
-		{
-			registro()
-		}
-	default:
-		fmt.Println("Cerrando cliente...")
 	}
 
 }
