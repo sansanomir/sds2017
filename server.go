@@ -28,9 +28,7 @@ type Usuario struct {
 func login(user string, password string) bool {
 	usuarios := map[int]Usuario{}
 	file, err := os.Open("bd.txt")
-	if err != nil {
-		panic(err)
-	}
+	chk(err)
 	defer file.Close()
 	str, err := ioutil.ReadAll(file)
 	if erru := json.Unmarshal(str, &usuarios); erru != nil {
@@ -48,9 +46,7 @@ func login(user string, password string) bool {
 func registro(user string, password string) bool {
 	usuarios := map[int]Usuario{}
 	file, err := os.Open("bd.txt")
-	if err != nil {
-		panic(err)
-	}
+	chk(err)
 	defer file.Close()
 	str, err := ioutil.ReadAll(file)
 	if erru := json.Unmarshal(str, &usuarios); erru != nil {
@@ -71,11 +67,6 @@ func registro(user string, password string) bool {
 		fmt.Println("Error marshal: ", err)
 	}
 
-	file2, err := os.Open("bd.txt")
-	if err != nil {
-		panic(err)
-	}
-	defer file2.Close()
 	ioutil.WriteFile("bd.txt", usuarios_json, 0644)
 
 	return true

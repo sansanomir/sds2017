@@ -8,6 +8,9 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"crypto/sha512"
+	"encoding/base64"
+	//"github.com/howeyc/gopass"
 )
 
 func chk(e error) {
@@ -42,6 +45,7 @@ func login() bool {
 	fmt.Scanf("%s\n", &usuario)
 	fmt.Print("Introduce password: ")
 	var password string
+	//password = gopass.GetPasswdMasked()
 	fmt.Scanf("%s\n", &password)
 	data := url.Values{} // estructura para contener los valores
 
@@ -53,13 +57,45 @@ func login() bool {
 	}
 	client := &http.Client{Transport: tr}
 	resp, err := client.PostForm("https://localhost:10443", data) // enviamos por POST
-	if err != nil {
-		panic(err)
-	}
+	chk(err)
 	defer resp.Body.Close()
 	io.Copy(os.Stdout, resp.Body) // mostramos el cuerpo de la respuesta (es un reader)
 	body, err := ioutil.ReadAll(resp.Body)
 	fmt.Println("Cuerpo", body)
+	return true
+
+}
+
+func add() bool {
+	fmt.Println("--- Añadir nueva cuenta ---")
+	fmt.Print("Introduce sitio web: ")
+	var sitio string
+	fmt.Scanf("%s\n", &sitio)
+	fmt.Print("Introduce usuario: ")
+	var usuario string
+	fmt.Scanf("%s\n", &usuario)
+	fmt.Print("Introduce password: ")
+	var password string
+	fmt.Scanf("%s\n", &password)
+	fmt.Print("Introduce un comentario: ")
+	var comentario string
+	fmt.Scanf("%s\n", &comentario)
+
+	data := url.Values{} // estructura para contener los valores
+	data.Set("cmd", "Add")
+	data.Set("Sitio", sitio)
+	data.Set("Usuario", usuario)   
+	data.Set("Password", password) 
+	data.Set("Comentario", comentario)
+
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	client := &http.Client{Transport: tr}
+	resp, err := client.PostForm("https://localhost:10443", data) // enviamos por POST
+	chk(err)
+	defer resp.Body.Close()
+	io.Copy(os.Stdout, resp.Body)
 	return true
 
 }
@@ -84,7 +120,7 @@ func menuprincipal() {
 			}
 		case 2:
 			{
-				//Añadir
+				add()
 			}
 		case 3:
 			{
@@ -102,6 +138,10 @@ func menuprincipal() {
 	}
 }
 
+func encode64(data []byte) string {
+	return base64.StdEncoding.EncodeToString(data) // sólo utiliza caracteres "imprimibles"
+}
+
 func registro() bool {
 	fmt.Println("--- Registrarse: ---")
 	fmt.Print("Introduce usuario: ")
@@ -110,11 +150,14 @@ func registro() bool {
 	fmt.Print("Introduce password: ")
 	var password string
 	fmt.Scanf("%s\n", &password)
+
+	pass2 := (sha512.Sum512([]byte(password)))
+	fmt.Println(pass2)
 	data := url.Values{} // estructura para contener los valores
 
 	data.Set("cmd", "Registro")
 	data.Set("Usuario", usuario)   // comando (string)
-	data.Set("Password", password) // usuario (string)
+	//data.Set("Password", pass2) // usuario (string)
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
