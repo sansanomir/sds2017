@@ -10,7 +10,7 @@ import (
 	"os"
 	"crypto/sha512"
 	"encoding/base64"
-	//"github.com/howeyc/gopass"
+	"github.com/howeyc/gopass"
 )
 
 func chk(e error) {
@@ -44,14 +44,15 @@ func login() bool {
 	var usuario string
 	fmt.Scanf("%s\n", &usuario)
 	fmt.Print("Introduce password: ")
-	var password string
-	//password = gopass.GetPasswdMasked()
-	fmt.Scanf("%s\n", &password)
+    pass, err := gopass.GetPasswd()
+	if err != nil {
+		// Handle gopass.ErrInterrupted or getch() read error
+	}
 	data := url.Values{} // estructura para contener los valores
 
 	data.Set("cmd", "Login")
 	data.Set("Usuario", usuario)   // comando (string)
-	data.Set("Password", password) // usuario (string)
+	data.Set("Password", string(pass)) // usuario (string)
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}

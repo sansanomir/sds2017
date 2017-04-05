@@ -1,0 +1,6 @@
+Puesta en marcha
+
+go generateCert.go --host localhost
+go get github.com/howeyc/gopass
+go run server.go
+go run client.go
