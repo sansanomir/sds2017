@@ -1,15 +1,16 @@
 package main
 
 import (
+	"crypto/sha512"
 	"crypto/tls"
+	"encoding/base64"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
-	"crypto/sha512"
-	"encoding/base64"
+
 	"github.com/howeyc/gopass"
 )
 
@@ -44,7 +45,7 @@ func login() bool {
 	var usuario string
 	fmt.Scanf("%s\n", &usuario)
 	fmt.Print("Introduce password: ")
-    password, err := gopass.GetPasswd()
+	password, err := gopass.GetPasswd()
 	chk(err)
 	data := url.Values{} // estructura para contener los valores
 
@@ -53,8 +54,8 @@ func login() bool {
 	pass2 := encode64(sha_512.Sum(nil))
 
 	data.Set("cmd", "Login")
-	data.Set("Usuario", usuario)   // comando (string)
-	data.Set("Password", pass2) // usuario (string)
+	data.Set("Usuario", usuario) // comando (string)
+	data.Set("Password", pass2)  // usuario (string)
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
@@ -64,7 +65,8 @@ func login() bool {
 	defer resp.Body.Close()
 	io.Copy(os.Stdout, resp.Body) // mostramos el cuerpo de la respuesta (es un reader)
 	body, err := ioutil.ReadAll(resp.Body)
-	fmt.Println("Cuerpo", body)
+	bodyString := string(body)
+	fmt.Println("Cuerpo", bodyString)
 	return true
 
 }
@@ -87,8 +89,8 @@ func add() bool {
 	data := url.Values{} // estructura para contener los valores
 	data.Set("cmd", "Add")
 	data.Set("Sitio", sitio)
-	data.Set("Usuario", usuario)   
-	data.Set("Password", password) 
+	data.Set("Usuario", usuario)
+	data.Set("Password", password)
 	data.Set("Comentario", comentario)
 
 	tr := &http.Transport{
@@ -160,8 +162,8 @@ func registro() bool {
 
 	data := url.Values{} // estructura para contener los valores
 	data.Set("cmd", "Registro")
-	data.Set("Usuario", usuario)   // comando (string)
-	data.Set("Password", pass2) // usuario (string)
+	data.Set("Usuario", usuario) // comando (string)
+	data.Set("Password", pass2)  // usuario (string)
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}

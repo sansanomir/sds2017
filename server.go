@@ -1,6 +1,9 @@
 package main
 
 import (
+	"crypto/rand"
+	"crypto/sha512"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -27,7 +30,7 @@ type Usuario struct {
 
 func login(user string, password string) bool {
 	usuarios := map[int]Usuario{}
-	file, err := os.Open("bd.txt")
+	file, err := os.Open("bd.json")
 	chk(err)
 	defer file.Close()
 	str, err := ioutil.ReadAll(file)
@@ -35,17 +38,40 @@ func login(user string, password string) bool {
 		panic(erru)
 	}
 	for key, value := range usuarios {
-		if value.Username == user && value.MasterKey == password {
-			fmt.Print(key)
-			return true
+		if value.Username == user {
+			sha_512 := sha512.New()
+			sha_512.Write([]byte(password))
+			pass2 := encode64(sha_512.Sum([]byte(value.Sal)))
+			if value.MasterKey == pass2 {
+				fmt.Print(key)
+				return true
+			}
 		}
 	}
 	return false
 }
 
+func GenerateRandomBytes(n int) ([]byte, error) {
+	b := make([]byte, n)
+	_, err := rand.Read(b)
+	// Note that err == nil only if we read len(b) bytes.
+	if err != nil {
+		return nil, err
+	}
+
+	return b, nil
+}
+func GenerateRandomString(s int) (string, error) {
+	b, err := GenerateRandomBytes(s)
+	return base64.URLEncoding.EncodeToString(b), err
+}
+func encode64(data []byte) string {
+	return base64.StdEncoding.EncodeToString(data) // sólo utiliza caracteres "imprimibles"
+}
+
 func registro(user string, password string) bool {
 	usuarios := map[int]Usuario{}
-	file, err := os.Open("bd.txt")
+	file, err := os.Open("bd.json")
 	chk(err)
 	defer file.Close()
 	str, err := ioutil.ReadAll(file)
@@ -59,15 +85,22 @@ func registro(user string, password string) bool {
 			return false
 		}
 	}
+	salG, error := GenerateRandomString(10)
+	chk(error)
+
+	sha_512 := sha512.New()
+	sha_512.Write([]byte(password))
+	pass2 := encode64(sha_512.Sum([]byte(salG)))
+
 	var lista []Entrada
-	usuario_nuevo := Usuario{Sal: "sal", MasterKey: password, Username: user, Lista: lista}
+	usuario_nuevo := Usuario{Sal: salG, MasterKey: pass2, Username: user, Lista: lista}
 	usuarios[len(usuarios)+1] = usuario_nuevo //añadimos el nuevo usuario al map
 	usuarios_json, err := json.Marshal(usuarios)
 	if err != nil {
 		fmt.Println("Error marshal: ", err)
 	}
 
-	ioutil.WriteFile("bd.txt", usuarios_json, 0644)
+	ioutil.WriteFile("bd.json", usuarios_json, 0644)
 
 	return true
 }
@@ -104,6 +137,7 @@ func handler(w http.ResponseWriter, req *http.Request) {
 		{
 			mensaje := ""
 			if registro(req.Form.Get("Usuario"), req.Form.Get("Password")) {
+
 				fmt.Println("Registro ok")
 				mensaje = "Usuario: " + req.Form.Get("Usuario") + ", Password: " + req.Form.Get("Password")
 				response(w, true, mensaje)
@@ -133,41 +167,6 @@ func handler(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-/*func handler(w http.ResponseWriter, r *http.Request) {
-	if r.RequestURI == "/read" {
-		fmt.Fprintf(w, r.RequestURI)
-		file, err := os.Open("datos.txt")
-		if err != nil {
-			panic(err)
-		}
-		defer func() {
-			if err := file.Close(); err != nil {
-				panic(err)
-			}
-		}()
-		str, err := ioutil.ReadAll(file)
-		fmt.Println(string(str))
-	} else if r.RequestURI == "/write" {
-		fmt.Fprintf(w, r.RequestURI)
-		fileW, err := os.Create("result.txt")
-		if err != nil {
-			log.Fatal("Cannot create file", err)
-		}
-		defer fileW.Close()
-		fmt.Fprintf(fileW, "user: Pepe\nmasterKey: asdf\n")
-	} else {
-		fmt.Fprintf(w, "I don't know")
-	}
-}*/
-/*
-func main() {
-	http.HandleFunc("/", handler)
-	// Start the HTTPS server in a goroutine
-	go http.ListenAndServeTLS(":8081", "cert.pem", "key.pem", nil)
-	// Start the HTTP server and redirect all incoming connections to HTTPS
-	http.ListenAndServe(":8080", http.HandlerFunc(redirectToHttps))
-}
-*/
 func main() {
 
 	fmt.Println("Servidor emcendido en el puerto 10443...")
