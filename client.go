@@ -44,15 +44,17 @@ func login() bool {
 	var usuario string
 	fmt.Scanf("%s\n", &usuario)
 	fmt.Print("Introduce password: ")
-    pass, err := gopass.GetPasswd()
-	if err != nil {
-		// Handle gopass.ErrInterrupted or getch() read error
-	}
+    password, err := gopass.GetPasswd()
+	chk(err)
 	data := url.Values{} // estructura para contener los valores
+
+	sha_512 := sha512.New()
+	sha_512.Write([]byte(password))
+	pass2 := encode64(sha_512.Sum(nil))
 
 	data.Set("cmd", "Login")
 	data.Set("Usuario", usuario)   // comando (string)
-	data.Set("Password", string(pass)) // usuario (string)
+	data.Set("Password", pass2) // usuario (string)
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
@@ -149,16 +151,17 @@ func registro() bool {
 	var usuario string
 	fmt.Scanf("%s\n", &usuario)
 	fmt.Print("Introduce password: ")
-	var password string
-	fmt.Scanf("%s\n", &password)
+	password, err := gopass.GetPasswd()
+	chk(err)
 
-	pass2 := (sha512.Sum512([]byte(password)))
-	fmt.Println(pass2)
+	sha_512 := sha512.New()
+	sha_512.Write([]byte(password))
+	pass2 := encode64(sha_512.Sum(nil))
+
 	data := url.Values{} // estructura para contener los valores
-
 	data.Set("cmd", "Registro")
 	data.Set("Usuario", usuario)   // comando (string)
-	//data.Set("Password", pass2) // usuario (string)
+	data.Set("Password", pass2) // usuario (string)
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
