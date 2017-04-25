@@ -6,7 +6,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -63,12 +62,24 @@ func login() bool {
 	resp, err := client.PostForm("https://localhost:10443", data) // enviamos por POST
 	chk(err)
 	defer resp.Body.Close()
-	io.Copy(os.Stdout, resp.Body) // mostramos el cuerpo de la respuesta (es un reader)
-	body, err := ioutil.ReadAll(resp.Body)
-	bodyString := string(body)
-	fmt.Println("Cuerpo", bodyString)
-	return true
+	if resp.ContentLength == 52 {
+		println("\nnError de identificación\n")
+		return false
+	} else {
+		return true
+	}
+}
 
+func logout() {
+	data := url.Values{} // estructura para contener los valores
+	data.Set("cmd", "Logout")
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	client := &http.Client{Transport: tr}
+	resp, err := client.PostForm("https://localhost:10443", data) // enviamos por POST
+	chk(err)
+	defer resp.Body.Close()
 }
 
 func add() bool {
@@ -105,6 +116,29 @@ func add() bool {
 
 }
 
+func view() bool {
+	fmt.Println("--- Ver una cuenta ---")
+	fmt.Print("Introduce sitio web: ")
+	var sitio string
+	fmt.Scanf("%s\n", &sitio)
+	data := url.Values{} // estructura para contener los valores
+	data.Set("cmd", "View")
+	data.Set("Sitio", sitio)
+
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	client := &http.Client{Transport: tr}
+	resp, err := client.PostForm("https://localhost:10443", data) // enviamos por POST
+	chk(err)
+	defer resp.Body.Close()
+	println("\n")
+	io.Copy(os.Stdout, resp.Body)
+	println("\n")
+	return true
+
+}
+
 func menuprincipal() {
 
 	var opcion int
@@ -114,14 +148,14 @@ func menuprincipal() {
 		fmt.Println("1 - Consultar una cuenta.")
 		fmt.Println("2 - Añadir nueva cuenta.")
 		fmt.Println("3 - Eliminar una cuenta.")
-		fmt.Println("4 - Salir.")
+		fmt.Println("4 - Salir(Logout).")
 		fmt.Print("Opción: ")
 		fmt.Scanf("%d\n", &opcion)
 
 		switch opcion {
 		case 1:
 			{
-				//Consultar
+				view()
 			}
 		case 2:
 			{
@@ -133,7 +167,7 @@ func menuprincipal() {
 			}
 		case 4:
 			{
-				//Salir. No hace nada
+				logout()
 			}
 		default:
 			{

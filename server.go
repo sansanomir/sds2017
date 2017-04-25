@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/aes"
+	"crypto/cipher"
 	"crypto/rand"
 	"crypto/sha512"
 	"encoding/base64"
@@ -25,7 +27,81 @@ type Usuario struct {
 	Sal       string
 	MasterKey string
 	Username  string
-	Lista     []Entrada
+	Lista     map[int]Entrada
+}
+
+var userNameSession string
+
+func encrypt(data, key []byte) (out []byte) {
+	out = make([]byte, len(data)+16)    // reservamos espacio para el IV al principio
+	rand.Read(out[:16])                 // generamos el IV
+	blk, err := aes.NewCipher(key)      // cifrador en bloque (AES), usa key
+	chk(err)                            // comprobamos el error
+	ctr := cipher.NewCTR(blk, out[:16]) // cifrador en flujo: modo CTR, usa IV
+	ctr.XORKeyStream(out[16:], data)    // ciframos los datos
+	return
+}
+
+// función para descifrar (con AES en este caso)
+func decrypt(data, key []byte) (out []byte) {
+	out = make([]byte, len(data)-16)     // la salida no va a tener el IV
+	blk, err := aes.NewCipher(key)       // cifrador en bloque (AES), usa key
+	chk(err)                             // comprobamos el error
+	ctr := cipher.NewCTR(blk, data[:16]) // cifrador en flujo: modo CTR, usa IV
+	ctr.XORKeyStream(out, data[16:])     // desciframos (doble cifrado) los datos
+	return
+}
+
+func addEntry(entrada string, user string, password string, comentario string) bool {
+	usuarios := map[int]Usuario{}
+	file, err := os.Open("bd.json")
+	chk(err)
+	defer file.Close()
+	str, err := ioutil.ReadAll(file)
+	if erru := json.Unmarshal(str, &usuarios); erru != nil {
+		panic(erru)
+	}
+	for key, value := range usuarios {
+		if value.Username == userNameSession {
+			keyClient := sha512.Sum512([]byte("sal")) //cambiar
+			keyData := keyClient[32:64]
+
+			entrada_nueva := Entrada{Sitio: entrada, User: user, Password: encode64(encrypt([]byte(password), keyData)), Comentario: comentario}
+			usuarios[key].Lista[len(usuarios[key].Lista)] = entrada_nueva
+			usuarios_json, err := json.Marshal(usuarios)
+			if err != nil {
+				fmt.Println("Error marshal: ", err)
+			}
+			ioutil.WriteFile("bd.json", usuarios_json, 0644)
+			return true
+		}
+	}
+	return false
+}
+
+func viewEntry(entrada string) string {
+	info := ""
+	usuarios := map[int]Usuario{}
+	file, err := os.Open("bd.json")
+	chk(err)
+	defer file.Close()
+	str, err := ioutil.ReadAll(file)
+	if erru := json.Unmarshal(str, &usuarios); erru != nil {
+		panic(erru)
+	}
+	for key, value := range usuarios {
+		println(key)
+		if value.Username == userNameSession {
+			for entry, value := range value.Lista {
+				println(entry)
+				if value.Sitio == entrada {
+					info = "User: " + value.User + " Password: " + value.Password + " Comentario: " + value.Comentario
+					return info
+				}
+			}
+		}
+	}
+	return "-"
 }
 
 func login(user string, password string) bool {
@@ -71,6 +147,8 @@ func encode64(data []byte) string {
 
 func registro(user string, password string) bool {
 	usuarios := map[int]Usuario{}
+	entradas := map[int]Entrada{}
+
 	file, err := os.Open("bd.json")
 	chk(err)
 	defer file.Close()
@@ -92,8 +170,9 @@ func registro(user string, password string) bool {
 	sha_512.Write([]byte(password))
 	pass2 := encode64(sha_512.Sum([]byte(salG)))
 
-	var lista []Entrada
-	usuario_nuevo := Usuario{Sal: salG, MasterKey: pass2, Username: user, Lista: lista}
+	entrada_nueva := Entrada{Sitio: "", User: "", Password: "", Comentario: ""}
+	entradas[0] = entrada_nueva
+	usuario_nuevo := Usuario{Sal: salG, MasterKey: pass2, Username: user, Lista: entradas}
 	usuarios[len(usuarios)+1] = usuario_nuevo //añadimos el nuevo usuario al map
 	usuarios_json, err := json.Marshal(usuarios)
 	if err != nil {
@@ -137,7 +216,6 @@ func handler(w http.ResponseWriter, req *http.Request) {
 		{
 			mensaje := ""
 			if registro(req.Form.Get("Usuario"), req.Form.Get("Password")) {
-
 				fmt.Println("Registro ok")
 				mensaje = "Usuario: " + req.Form.Get("Usuario") + ", Password: " + req.Form.Get("Password")
 				response(w, true, mensaje)
@@ -152,6 +230,7 @@ func handler(w http.ResponseWriter, req *http.Request) {
 		{
 			mensaje := ""
 			if login(req.Form.Get("Usuario"), req.Form.Get("Password")) {
+				userNameSession = req.Form.Get("Usuario")
 				fmt.Println("Login ok")
 				mensaje = "Usuario: " + req.Form.Get("Usuario") + ", Password: " + req.Form.Get("Password")
 				response(w, true, mensaje)
@@ -162,6 +241,38 @@ func handler(w http.ResponseWriter, req *http.Request) {
 			}
 
 		}
+	case "Add":
+		{
+			if userNameSession == "" {
+				response(w, false, "No se ha hecho login")
+			} else {
+				if addEntry(req.Form.Get("Sitio"), req.Form.Get("Usuario"),
+					req.Form.Get("Password"), req.Form.Get("Comentario")) {
+					response(w, true, "Add Ok")
+				} else {
+					response(w, false, "Error add")
+				}
+			}
+		}
+	case "View":
+		{
+			if userNameSession == "" {
+				response(w, false, "No se ha hecho login")
+			} else {
+				info := viewEntry(req.Form.Get("Sitio"))
+				if info != "-" {
+					response(w, true, info)
+				} else {
+					response(w, false, info)
+				}
+			}
+		}
+	case "Logout":
+		{
+			userNameSession = ""
+			response(w, false, "Logout correcto")
+		}
+
 	default:
 		response(w, false, "Comando inválido")
 	}
@@ -169,7 +280,7 @@ func handler(w http.ResponseWriter, req *http.Request) {
 
 func main() {
 
-	fmt.Println("Servidor emcendido en el puerto 10443...")
+	fmt.Println("Servidor encendido en el puerto 10443...")
 	stopChan := make(chan os.Signal)
 	signal.Notify(stopChan, os.Interrupt)
 
