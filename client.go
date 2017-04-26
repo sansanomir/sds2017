@@ -4,6 +4,7 @@ import (
 	"crypto/sha512"
 	"crypto/tls"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -12,6 +13,11 @@ import (
 	"io/ioutil"
 	"github.com/howeyc/gopass"
 )
+
+type respLogin struct {
+	Ok		bool
+	Msg		string
+}
 
 func chk(e error) {
 	if e != nil {
@@ -37,7 +43,7 @@ func menu() int {
 	return opcion
 
 }
-func sendPost(data url.Values)string{
+func sendPost(data url.Values) []byte{
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
@@ -51,8 +57,8 @@ func sendPost(data url.Values)string{
 		fmt.Println("errorination happened reading the body", err)
 		panic("Error respuesta Post")
 	}
-	a := string(body[:])
-	return a
+
+	return body
 }
 
 func login() bool {
@@ -73,10 +79,15 @@ func login() bool {
 	data.Set("Usuario", usuario) // comando (string)
 	data.Set("Password", pass2)  // usuario (string)
 
-	var respuesta string
-	respuesta = sendPost(data)
-	fmt.Println(respuesta)
-	fmt.Println(respuesta[0:7])
+	body := sendPost(data)
+	respuesta := respLogin{}
+
+	if erru := json.Unmarshal(body, &respuesta); erru != nil {
+		panic(erru)
+	}
+
+	fmt.Println(respuesta.Ok)
+	fmt.Println(respuesta.Msg)
 	/*if respuesta[6] != "t" {
 		println("\nnError de identificación\n")
 		return false
