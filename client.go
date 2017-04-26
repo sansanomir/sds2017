@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-
+	"io/ioutil"
 	"github.com/howeyc/gopass"
 )
 
@@ -37,6 +37,23 @@ func menu() int {
 	return opcion
 
 }
+func sendPost(data url.Values)string{
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	client := &http.Client{Transport: tr}
+	resp, err := client.PostForm("https://localhost:10443", data) // enviamos por POST
+	chk(err)
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+
+	if nil != err {
+		fmt.Println("errorination happened reading the body", err)
+		panic("Error respuesta Post")
+	}
+	a := string(body[:])
+	return a
+}
 
 func login() bool {
 	fmt.Println("--- Iniciar sesión: ---")
@@ -55,19 +72,17 @@ func login() bool {
 	data.Set("cmd", "Login")
 	data.Set("Usuario", usuario) // comando (string)
 	data.Set("Password", pass2)  // usuario (string)
-	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-	}
-	client := &http.Client{Transport: tr}
-	resp, err := client.PostForm("https://localhost:10443", data) // enviamos por POST
-	chk(err)
-	defer resp.Body.Close()
-	if resp.ContentLength == 52 {
+
+	var respuesta string
+	respuesta = sendPost(data)
+	fmt.Println(respuesta)
+	fmt.Println(respuesta[0:7])
+	/*if respuesta[6] != "t" {
 		println("\nnError de identificación\n")
 		return false
-	} else {
+	} else {*/
 		return true
-	}
+	
 }
 
 func logout() {
