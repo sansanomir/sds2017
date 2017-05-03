@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"time"
 )
 
 type Entrada struct {
@@ -31,6 +32,14 @@ type Usuario struct {
 }
 
 var userNameSession string
+var sesiones = map[string]time.Time{"usuario":time.Now()}
+
+func crearsesion(usuario string) {
+
+	sesiones[usuario] = time.Now()
+
+}
+
 
 func encrypt(data, key []byte) (out []byte) {
 	out = make([]byte, len(data)+16)    // reservamos espacio para el IV al principio
@@ -270,7 +279,7 @@ func handler(w http.ResponseWriter, req *http.Request) {
 	case "Logout":
 		{
 			userNameSession = ""
-			response(w, false, "Logout correcto")
+			response(w, true, "Logout correcto")
 		}
 
 	default:
@@ -281,6 +290,8 @@ func handler(w http.ResponseWriter, req *http.Request) {
 func main() {
 
 	fmt.Println("Servidor encendido en el puerto 10443...")
+	crearsesion("hola")
+	fmt.Println(time.Now().Sub(sesiones["hola"]))
 	stopChan := make(chan os.Signal)
 	signal.Notify(stopChan, os.Interrupt)
 

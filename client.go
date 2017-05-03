@@ -99,13 +99,15 @@ func login() bool {
 func logout() {
 	data := url.Values{} // estructura para contener los valores
 	data.Set("cmd", "Logout")
-	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+
+	body := sendPost(data)
+	respuesta := respLogin{}
+
+	if erru := json.Unmarshal(body, &respuesta); erru != nil {
+		panic(erru)
 	}
-	client := &http.Client{Transport: tr}
-	resp, err := client.PostForm("https://localhost:10443", data) // enviamos por POST
-	chk(err)
-	defer resp.Body.Close()
+
+	fmt.Println(respuesta.Msg)
 }
 
 func add() bool {
