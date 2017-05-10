@@ -40,6 +40,27 @@ func crearsesion(usuario string) {
 
 }
 
+func comprobarsesion(usuario string) (comp bool, mensaje string){
+
+
+	tiempo_max := 20;
+	if val, ok:=sesiones[usuario]; ok {
+		if time.Now().Sub(val)<time.Duration(tiempo_max)*time.Second {
+			sesiones[usuario] = time.Now();
+			return true, "";
+		} else {
+			delete(sesiones, usuario);
+			return false, "El tiempo de sesión ha expirado."
+		}
+	}
+	return false, "No se ha hecho login";
+	/*if sesiones[usuario]!=nil && time.Now().Sub(sesiones[usuario])<time.Duration(tiempo_max)*time.Nanosecond {
+		return true;
+	}
+	return false;*/
+
+}
+
 
 func encrypt(data, key []byte) (out []byte) {
 	out = make([]byte, len(data)+16)    // reservamos espacio para el IV al principio
@@ -239,9 +260,9 @@ func handler(w http.ResponseWriter, req *http.Request) {
 		{
 			mensaje := ""
 			if login(req.Form.Get("Usuario"), req.Form.Get("Password")) {
-				userNameSession = req.Form.Get("Usuario")
+				crearsesion(req.Form.Get("Usuario"))
 				fmt.Println("Login ok")
-				mensaje = "Usuario: " + req.Form.Get("Usuario") + ", Password: " + req.Form.Get("Password")
+				mensaje = "Usuario: " + req.Form.Get("Usuario") + ", ha hecho login."
 				response(w, true, mensaje)
 			} else {
 				fmt.Println("Login error")
@@ -252,10 +273,11 @@ func handler(w http.ResponseWriter, req *http.Request) {
 		}
 	case "Add":
 		{
-			if userNameSession == "" {
-				response(w, false, "No se ha hecho login")
+			comp, mens := comprobarsesion(req.Form.Get("Usuario"))
+			if comp == false {
+				response(w, false, mens)
 			} else {
-				if addEntry(req.Form.Get("Sitio"), req.Form.Get("Usuario"),
+				if addEntry(req.Form.Get("Sitio"), req.Form.Get("Usuariositio"),
 					req.Form.Get("Password"), req.Form.Get("Comentario")) {
 					response(w, true, "Add Ok")
 				} else {
@@ -278,7 +300,7 @@ func handler(w http.ResponseWriter, req *http.Request) {
 		}
 	case "Logout":
 		{
-			userNameSession = ""
+			delete(sesiones, req.Form.Get("Usuario"))
 			response(w, true, "Logout correcto")
 		}
 
@@ -291,6 +313,7 @@ func main() {
 
 	fmt.Println("Servidor encendido en el puerto 10443...")
 	crearsesion("hola")
+
 	fmt.Println(time.Now().Sub(sesiones["hola"]))
 	stopChan := make(chan os.Signal)
 	signal.Notify(stopChan, os.Interrupt)

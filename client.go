@@ -19,11 +19,19 @@ type respLogin struct {
 	Msg		string
 }
 
+type respSesion struct {
+	Ok		bool
+	Msg		string
+	Sesion  bool
+}
+
 func chk(e error) {
 	if e != nil {
 		panic(e)
 	}
 }
+
+var usuario string
 
 func menu() int {
 	fmt.Println("Cliente de la aplicación")
@@ -64,7 +72,6 @@ func sendPost(data url.Values) []byte{
 func login() bool {
 	fmt.Println("--- Iniciar sesión: ---")
 	fmt.Print("Introduce usuario: ")
-	var usuario string
 	fmt.Scanf("%s\n", &usuario)
 	fmt.Print("Introduce password: ")
 	password, err := gopass.GetPasswd()
@@ -99,6 +106,7 @@ func login() bool {
 func logout() {
 	data := url.Values{} // estructura para contener los valores
 	data.Set("cmd", "Logout")
+	data.Set("Usuario", usuario)
 
 	body := sendPost(data)
 	respuesta := respLogin{}
@@ -116,8 +124,8 @@ func add() bool {
 	var sitio string
 	fmt.Scanf("%s\n", &sitio)
 	fmt.Print("Introduce usuario: ")
-	var usuario string
-	fmt.Scanf("%s\n", &usuario)
+	var usuariositio string
+	fmt.Scanf("%s\n", &usuariositio)
 	fmt.Print("Introduce password: ")
 	var password string
 	fmt.Scanf("%s\n", &password)
@@ -127,8 +135,9 @@ func add() bool {
 
 	data := url.Values{} // estructura para contener los valores
 	data.Set("cmd", "Add")
-	data.Set("Sitio", sitio)
 	data.Set("Usuario", usuario)
+	data.Set("Sitio", sitio)
+	data.Set("Usuariositio", usuariositio)
 	data.Set("Password", password)
 	data.Set("Comentario", comentario)
 
