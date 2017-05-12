@@ -7,22 +7,35 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
-	"io/ioutil"
+
 	"github.com/howeyc/gopass"
 )
 
+type Entrada struct {
+	Sitio      string
+	User       string
+	Password   string
+	Comentario string
+}
+
 type respLogin struct {
-	Ok		bool
-	Msg		string
+	Ok  bool
+	Msg string
 }
 
 type respSesion struct {
-	Ok		bool
-	Msg		string
-	Sesion  bool
+	Ok     bool
+	Msg    string
+	Sesion bool
+}
+
+type respEntrada struct {
+	Ok     bool
+	ValorEntrada Entrada
 }
 
 func chk(e error) {
@@ -51,7 +64,7 @@ func menu() int {
 	return opcion
 
 }
-func sendPost(data url.Values) []byte{
+func sendPost(data url.Values) []byte {
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
@@ -70,9 +83,10 @@ func sendPost(data url.Values) []byte{
 }
 
 func login() bool {
+	var usuarioL string
 	fmt.Println("--- Iniciar sesión: ---")
 	fmt.Print("Introduce usuario: ")
-	fmt.Scanf("%s\n", &usuario)
+	fmt.Scanf("%s\n", &usuarioL)
 	fmt.Print("Introduce password: ")
 	password, err := gopass.GetPasswd()
 	chk(err)
@@ -83,8 +97,8 @@ func login() bool {
 	pass2 := encode64(sha_512.Sum(nil))
 
 	data.Set("cmd", "Login")
-	data.Set("Usuario", usuario) // comando (string)
-	data.Set("Password", pass2)  // usuario (string)
+	data.Set("Usuario", usuarioL) // comando (string)
+	data.Set("Password", pass2)   // usuario (string)
 
 	body := sendPost(data)
 	respuesta := respLogin{}
@@ -92,15 +106,12 @@ func login() bool {
 	if erru := json.Unmarshal(body, &respuesta); erru != nil {
 		panic(erru)
 	}
-
-	fmt.Println(respuesta.Ok)
 	fmt.Println(respuesta.Msg)
-	/*if respuesta[6] != "t" {
-		println("\nnError de identificación\n")
-		return false
-	} else {*/
+	if respuesta.Ok{
+		usuario = usuarioL
 		return true
-	
+	}
+	return false;
 }
 
 func logout() {
@@ -117,65 +128,182 @@ func logout() {
 
 	fmt.Println(respuesta.Msg)
 }
+func comprobarSesion(usuario string) (resultado bool, mensaje string) {
+	data := url.Values{} // estructura para contener los valores
+	data.Set("cmd", "Session")
+	data.Set("Usuario", usuario)
+	body := sendPost(data)
+	respuesta := respSesion{}
+
+	if erru := json.Unmarshal(body, &respuesta); erru != nil {
+		panic(erru)
+	}
+	return respuesta.Ok, respuesta.Msg
+}
 
 func add() bool {
-	fmt.Println("--- Añadir nueva cuenta ---")
-	fmt.Print("Introduce sitio web: ")
-	var sitio string
-	fmt.Scanf("%s\n", &sitio)
-	fmt.Print("Introduce usuario: ")
-	var usuariositio string
-	fmt.Scanf("%s\n", &usuariositio)
-	fmt.Print("Introduce password: ")
-	var password string
-	fmt.Scanf("%s\n", &password)
-	fmt.Print("Introduce un comentario: ")
-	var comentario string
-	fmt.Scanf("%s\n", &comentario)
+	comp, mens := comprobarSesion(usuario)
+	if !comp {
+		fmt.Println(mens)
+		return false
+	} else {
+		fmt.Println("--- Añadir nueva cuenta ---")
+		fmt.Print("Introduce sitio web: ")
+		var sitio string
+		fmt.Scanf("%s\n", &sitio)
+		fmt.Print("Introduce usuario: ")
+		var usuariositio string
+		fmt.Scanf("%s\n", &usuariositio)
+		fmt.Print("Introduce password: ")
+		var password string
+		fmt.Scanf("%s\n", &password)
+		fmt.Print("Introduce un comentario: ")
+		var comentario string
+		fmt.Scanf("%s\n", &comentario)
 
-	data := url.Values{} // estructura para contener los valores
-	data.Set("cmd", "Add")
-	data.Set("Usuario", usuario)
-	data.Set("Sitio", sitio)
-	data.Set("Usuariositio", usuariositio)
-	data.Set("Password", password)
-	data.Set("Comentario", comentario)
-
-	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		data := url.Values{} // estructura para contener los valores
+		data.Set("cmd", "Add")
+		data.Set("Usuario", usuario)
+		data.Set("Sitio", sitio)
+		data.Set("Usuariositio", usuariositio)
+		data.Set("Password", password)
+		data.Set("Comentario", comentario)
+		body := sendPost(data)
+		respuesta := respEntrada{}
+		if erru := json.Unmarshal(body, &respuesta); erru != nil {
+			panic(erru)
+		}
+		if respuesta.Ok{
+			fmt.Println("Entrada creada");
+		}
+		return false
 	}
-	client := &http.Client{Transport: tr}
-	resp, err := client.PostForm("https://localhost:10443", data) // enviamos por POST
-	chk(err)
-	defer resp.Body.Close()
-	io.Copy(os.Stdout, resp.Body)
-	return true
-
 }
 
 func view() bool {
-	fmt.Println("--- Ver una cuenta ---")
-	fmt.Print("Introduce sitio web: ")
-	var sitio string
-	fmt.Scanf("%s\n", &sitio)
-	data := url.Values{} // estructura para contener los valores
-	data.Set("cmd", "View")
-	data.Set("Sitio", sitio)
+	comp, mens := comprobarSesion(usuario)
+	if !comp {
+		fmt.Println(mens)
+		return false
+	} else {
+		fmt.Println("--- Ver una cuenta ---")
+		fmt.Print("Introduce sitio web: ")
+		var sitio string
+		fmt.Scanf("%s\n", &sitio)
+		data := url.Values{} // estructura para contener los valores
+		data.Set("cmd", "View")
+		data.Set("Usuario", usuario)
+		data.Set("Sitio", sitio)
 
-	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		body := sendPost(data)
+
+		respuesta := respEntrada{}
+
+		if erru := json.Unmarshal(body, &respuesta); erru != nil {
+			panic(erru)
+		}
+		entrada := respuesta.ValorEntrada
+		if entrada.Sitio!="."{
+			fmt.Println(respuesta.Ok)
+			fmt.Println("Sitio: ")
+			fmt.Println(entrada.Sitio)
+			fmt.Println("User: ")
+			fmt.Println(entrada.User)
+			fmt.Println("Password: ")
+			fmt.Println(entrada.Password)
+			fmt.Println("Comentario: ")
+			fmt.Println(entrada.Comentario)
+			return true
+		}else{
+			fmt.Println("Entrada no añadida aun")
+		}
+		return false
 	}
-	client := &http.Client{Transport: tr}
-	resp, err := client.PostForm("https://localhost:10443", data) // enviamos por POST
-	chk(err)
-	defer resp.Body.Close()
-	println("\n")
-	io.Copy(os.Stdout, resp.Body)
-	println("\n")
-	return true
-
 }
 
+func delete() bool{
+	comp, mens := comprobarSesion(usuario)
+	if !comp {
+		fmt.Println(mens)
+		return false
+	} else {
+		fmt.Print("Introduce sitio web: ")
+		var sitio string
+		fmt.Scanf("%s\n", &sitio)
+		data := url.Values{} // estructura para contener los valores
+		data.Set("cmd", "Delete")
+		data.Set("Usuario", usuario)
+		data.Set("Sitio", sitio)
+
+		body := sendPost(data)
+
+		respuesta := respEntrada{}
+
+		if erru := json.Unmarshal(body, &respuesta); erru != nil {
+			panic(erru)
+		}
+		if respuesta.Ok{
+			fmt.Println("Borrada: ")
+			return true
+		}
+		return false
+	}
+}
+func edit() bool {
+	comp, mens := comprobarSesion(usuario)
+	if !comp {
+		fmt.Println(mens)
+		return false
+	} else {
+		fmt.Println("--- Editar una cuenta ---")
+		fmt.Print("Introduce sitio web: ")
+		var sitio string
+		fmt.Scanf("%s\n", &sitio)
+		data := url.Values{} // estructura para contener los valores
+		data.Set("cmd", "Edit?")
+		data.Set("Usuario", usuario)
+		data.Set("Sitio", sitio)
+
+		body := sendPost(data)
+
+		respuesta := respLogin{}
+
+		if erru := json.Unmarshal(body, &respuesta); erru != nil {
+			panic(erru)
+		}
+		if respuesta.Ok{
+			fmt.Print("Introduce usuario: ")
+			var usuariositio string
+			fmt.Scanf("%s\n", &usuariositio)
+			fmt.Print("Introduce password: ")
+			var password string
+			fmt.Scanf("%s\n", &password)
+			fmt.Print("Introduce un comentario: ")
+			var comentario string
+			fmt.Scanf("%s\n", &comentario)
+
+			data := url.Values{} // estructura para contener los valores
+			data.Set("cmd", "Edit")
+			data.Set("Usuario", usuario)
+			data.Set("Sitio", sitio)
+			data.Set("Usuariositio", usuariositio)
+			data.Set("Password", password)
+			data.Set("Comentario", comentario)
+			body := sendPost(data)
+			respuesta := respLogin{}
+			if erru := json.Unmarshal(body, &respuesta); erru != nil {
+				panic(erru)
+			}
+			if respuesta.Ok{
+				fmt.Println("Entrada editada");
+				return true
+			}
+		}else{
+			fmt.Println("Entrada no añadida aun")
+		}
+		return false
+	}
+}
 func menuprincipal() {
 
 	var opcion int
@@ -185,7 +313,8 @@ func menuprincipal() {
 		fmt.Println("1 - Consultar una cuenta.")
 		fmt.Println("2 - Añadir nueva cuenta.")
 		fmt.Println("3 - Eliminar una cuenta.")
-		fmt.Println("4 - Salir(Logout).")
+		fmt.Println("4 - Editar una cuenta.")
+		fmt.Println("5 - Salir(Logout).")
 		fmt.Print("Opción: ")
 		fmt.Scanf("%d\n", &opcion)
 
@@ -200,9 +329,13 @@ func menuprincipal() {
 			}
 		case 3:
 			{
-				//Eliminar
+				delete()
 			}
 		case 4:
+			{
+				edit()
+			}
+		case 5:
 			{
 				logout()
 			}
