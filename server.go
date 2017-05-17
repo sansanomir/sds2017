@@ -26,6 +26,7 @@ type Entrada struct {
 
 type Usuario struct {
 	Sal       string
+	Key       string
 	MasterKey string
 	Username  string
 	Lista     map[int]Entrada
@@ -41,7 +42,7 @@ func crearsesion(usuario string) {
 }
 
 func comprobarsesion(usuario string) (comp bool, mensaje string) {
-	tiempo_max := 10
+	tiempo_max := 60
 	if val, ok := sesiones[usuario]; ok {
 		if time.Now().Sub(val) < time.Duration(tiempo_max)*time.Second {
 			sesiones[usuario] = time.Now()
@@ -58,6 +59,18 @@ func comprobarsesion(usuario string) (comp bool, mensaje string) {
 	}
 	return false;*/
 
+}
+
+func getBaseDatos() map[int]Usuario{
+	usuarios := map[int]Usuario{}
+	file, err := os.Open("bd.json")
+	chk(err)
+	defer file.Close()
+	str, err := ioutil.ReadAll(file)
+	if erru := json.Unmarshal(str, &usuarios); erru != nil {
+		panic(erru)
+	}
+	return usuarios;
 }
 
 func encrypt(data, key []byte) (out []byte) {
@@ -81,20 +94,15 @@ func decrypt(data, key []byte) (out []byte) {
 }
 
 func addEntry(usuario string,entrada string, usuarioSitio string, password string, comentario string) bool {
-	usuarios := map[int]Usuario{}
-	file, err := os.Open("bd.json")
-	chk(err)
-	defer file.Close()
-	str, err := ioutil.ReadAll(file)
-	if erru := json.Unmarshal(str, &usuarios); erru != nil {
-		panic(erru)
-	}
+	usuarios := getBaseDatos()
 	for key, value := range usuarios {
 		if value.Username == usuario {
-			keyClient := sha512.Sum512([]byte("sal")) //cambiar
-			keyData := keyClient[32:64]
-
-			entrada_nueva := Entrada{Sitio: entrada, User: usuarioSitio, Password: encode64(encrypt([]byte(password), keyData)), Comentario: comentario}
+			keyClient := sha512.Sum512([]byte(getUserKey(usuario)))
+			keyDataPass := keyClient[32:64]
+			keyDataUser := keyClient[0:32]
+			fmt.Println(keyDataUser)
+			fmt.Println(keyDataPass)
+			entrada_nueva := Entrada{Sitio: entrada, User: encode64(encrypt([]byte(usuarioSitio),keyDataUser)), Password: encode64(encrypt([]byte(password), keyDataPass)), Comentario: comentario}
 			usuarios[key].Lista[len(usuarios[key].Lista)] = entrada_nueva
 			usuarios_json, err := json.MarshalIndent(usuarios,"", "  ")
 			if err != nil {
@@ -108,21 +116,22 @@ func addEntry(usuario string,entrada string, usuarioSitio string, password strin
 }
 
 func viewEntry(usuario string,entrada string) Entrada {
-	usuarios := map[int]Usuario{}
-	file, err := os.Open("bd.json")
-	chk(err)
-	defer file.Close()
-	str, err := ioutil.ReadAll(file)
-	if erru := json.Unmarshal(str, &usuarios); erru != nil {
-		panic(erru)
-	}
+	usuarios := getBaseDatos()
 	for key, value := range usuarios {
 		println(key)
 		if value.Username == usuario {
 			for entry, value := range value.Lista {
 				println(entry)
 				if value.Sitio == entrada {
-					return Entrada{Sitio: value.Sitio , User: value.User, Password: value.Password, Comentario: value.Comentario}
+					keyClient := sha512.Sum512([]byte(getUserKey(usuario)))
+					keyDataPass := keyClient[32:64]
+					keyDataUser := keyClient[0:32]
+					fmt.Println(keyDataUser)
+			fmt.Println(keyDataPass)
+					return Entrada{Sitio: value.Sitio ,
+						User: string(decrypt(decode64(value.User), keyDataUser)),
+						Password: string(decrypt(decode64(value.Password),keyDataPass)),
+						 Comentario: value.Comentario}
 				}
 			}
 		}
@@ -131,15 +140,8 @@ func viewEntry(usuario string,entrada string) Entrada {
 }
 
 func editEntry(usuario string,entrada string, usuariositio string, password string, comentario string) Entrada {
-	usuarios := map[int]Usuario{}
-	file, err := os.Open("bd.json")
-	chk(err)
-	defer file.Close()
-	str, err := ioutil.ReadAll(file)
-	if erru := json.Unmarshal(str, &usuarios); erru != nil {
-		panic(erru)
-	}
-	keyClient := sha512.Sum512([]byte("sal")) //cambiar
+	usuarios := getBaseDatos()
+	keyClient := sha512.Sum512([]byte(getUserKey(usuario)))
 	keyData := keyClient[32:64]
 	indiceUsuario := getIndexUsuario(usuario)
 	indiceEntrada := getIndexLista(usuario,entrada)
@@ -151,18 +153,10 @@ func editEntry(usuario string,entrada string, usuariositio string, password stri
 	}
 	ioutil.WriteFile("bd.json", usuarios_json, 0644)
 	return usuarios[indiceUsuario].Lista[indiceEntrada]
-	//return Entrada{Sitio: entrada , User: usuariositio, Password: password, Comentario: comentario}
 }
 
 func existsEntry(usuario string,entrada string) bool{
-	usuarios := map[int]Usuario{}
-	file, err := os.Open("bd.json")
-	chk(err)
-	defer file.Close()
-	str, err := ioutil.ReadAll(file)
-	if erru := json.Unmarshal(str, &usuarios); erru != nil {
-		panic(erru)
-	}
+	usuarios := getBaseDatos()
 	for key, value := range usuarios {
 		println(key)
 		if value.Username == usuario {
@@ -178,14 +172,7 @@ func existsEntry(usuario string,entrada string) bool{
 }
 
 func deleteEntry(usuario string,entrada string) bool {
-	usuarios := map[int]Usuario{}
-	file, err := os.Open("bd.json")
-	chk(err)
-	defer file.Close()
-	str, err := ioutil.ReadAll(file)
-	if erru := json.Unmarshal(str, &usuarios); erru != nil {
-		panic(erru)
-	}
+	usuarios := getBaseDatos()
 	for key, value := range usuarios {
 		fmt.Println(key)
 		if value.Username == usuario {
@@ -212,14 +199,7 @@ func deleteEntry(usuario string,entrada string) bool {
 	return false
 }
 func getIndexUsuario(usuario string)int{
-	usuarios := map[int]Usuario{}
-	file, err := os.Open("bd.json")
-	chk(err)
-	defer file.Close()
-	str, err := ioutil.ReadAll(file)
-	if erru := json.Unmarshal(str, &usuarios); erru != nil {
-		panic(erru)
-	}
+	usuarios := getBaseDatos()
 	for key, value := range usuarios {
 		if value.Username == usuario{
 			return key;
@@ -229,14 +209,7 @@ func getIndexUsuario(usuario string)int{
 }
 
 func getIndexLista(usuario string, sitio string)int{
-	usuarios := map[int]Usuario{}
-	file, err := os.Open("bd.json")
-	chk(err)
-	defer file.Close()
-	str, err := ioutil.ReadAll(file)
-	if erru := json.Unmarshal(str, &usuarios); erru != nil {
-		panic(erru)
-	}
+	usuarios := getBaseDatos()
 	for key, value := range usuarios {
 		fmt.Println(key)
 		if value.Username == usuario{
@@ -249,15 +222,21 @@ func getIndexLista(usuario string, sitio string)int{
 	}
 	return -1
 }
-func login(user string, password string) bool {
-	usuarios := map[int]Usuario{}
-	file, err := os.Open("bd.json")
-	chk(err)
-	defer file.Close()
-	str, err := ioutil.ReadAll(file)
-	if erru := json.Unmarshal(str, &usuarios); erru != nil {
-		panic(erru)
+
+func getUserKey(usuario string)string{
+	usuarios := getBaseDatos()
+	for key, value := range usuarios {
+		fmt.Println(key)
+		if value.Username == usuario{
+			return value.Key
+		}
 	}
+	return ""
+
+}
+
+func login(user string, password string) bool {
+	usuarios := getBaseDatos()
 	for key, value := range usuarios {
 		if value.Username == user {
 			sha_512 := sha512.New()
@@ -290,18 +269,16 @@ func encode64(data []byte) string {
 	return base64.StdEncoding.EncodeToString(data) // sólo utiliza caracteres "imprimibles"
 }
 
+func decode64(s string) []byte {
+	b, err := base64.StdEncoding.DecodeString(s) // recupera el formato original
+	chk(err)                                     // comprobamos el error
+	return b                                     // devolvemos los datos originales
+}
+
 func registro(user string, password string) bool {
-	usuarios := map[int]Usuario{}
+	usuarios := getBaseDatos()
 	entradas := map[int]Entrada{}
 
-	file, err := os.Open("bd.json")
-	chk(err)
-	defer file.Close()
-	str, err := ioutil.ReadAll(file)
-	if erru := json.Unmarshal(str, &usuarios); erru != nil {
-		panic(erru)
-	}
-	//comprobamos si existe el usuario
 	for key, value := range usuarios {
 		if value.Username == user {
 			fmt.Println(key)
@@ -314,10 +291,12 @@ func registro(user string, password string) bool {
 	sha_512 := sha512.New()
 	sha_512.Write([]byte(password))
 	pass2 := encode64(sha_512.Sum([]byte(salG)))
+	keyG, error := GenerateRandomString(10)
+	chk(error)
 
-	entrada_nueva := Entrada{Sitio: "", User: "", Password: "", Comentario: ""}
-	entradas[0] = entrada_nueva
-	usuario_nuevo := Usuario{Sal: salG, MasterKey: pass2, Username: user, Lista: entradas}
+	//entrada_nueva := Entrada{Sitio: "", User: "", Password: "", Comentario: ""}
+	//entradas[0] = entrada_nueva
+	usuario_nuevo := Usuario{Sal: salG, Key: keyG, MasterKey: pass2, Username: user, Lista: entradas}
 	usuarios[len(usuarios)+1] = usuario_nuevo //añadimos el nuevo usuario al map
 	usuarios_json, err := json.MarshalIndent(usuarios,"", "  ")
 	if err != nil {
@@ -493,11 +472,5 @@ func main() {
 
 	<-stopChan // espera señal SIGINT
 	log.Println("Apagando servidor ...")
-
-	// apagar servidor de forma segura
-	//ctx, fnc := context.WithTimeout(context.Background(), 5*time.Second)
-	//fnc()
-	//srv.Shutdown(ctx)
-
 	log.Println("Servidor detenido correctamente")
 }
