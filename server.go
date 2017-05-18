@@ -18,7 +18,6 @@ import (
 )
 
 type Entrada struct {
-	Sitio      string
 	User       string
 	Password   string
 	Comentario string
@@ -28,8 +27,7 @@ type Usuario struct {
 	Sal       string
 	Key       string
 	MasterKey string
-	Username  string
-	Lista     map[int]Entrada
+	Lista     map[string]Entrada
 }
 
 var userNameSession string
@@ -61,8 +59,8 @@ func comprobarsesion(usuario string) (comp bool, mensaje string) {
 
 }
 
-func getBaseDatos() map[int]Usuario {
-	usuarios := map[int]Usuario{}
+func getBaseDatos() map[string]Usuario {
+	usuarios := map[string]Usuario{}
 	file, err := os.Open("bd.json")
 	chk(err)
 	defer file.Close()
@@ -117,156 +115,87 @@ func addEntry(usuario string, entrada string, usuarioSitio string, password stri
 	usuarios := getBaseDatos()
 	ok := false
 	msg := ""
-	for key, value := range usuarios {
-		fmt.Println(value.Username)
-		fmt.Println(usuario)
-		if value.Username == usuario {
-			if !existsEntry(usuario, entrada) {
-				userEncripted, passEncripted := encriptarUserPass(usuario, usuarioSitio, password)
-				entrada_nueva := Entrada{Sitio: entrada, User: userEncripted, Password: passEncripted, Comentario: comentario}
-				usuarios[key].Lista[len(usuarios[key].Lista)] = entrada_nueva
-				usuarios_json, err := json.MarshalIndent(usuarios, "", "  ")
-				if err != nil {
-					fmt.Println("Error marshal: ", err)
-				}
-				ioutil.WriteFile("bd.json", usuarios_json, 0644)
-				msg = "Sitio añadido correctamente"
-				ok = true
-				return ok, msg
-			} else {
-				msg = "El sitio ya existe"
-			}
-		}
-	}
 
+	if _, value := usuarios[usuario]; value {
+		if _, entr := usuarios[usuario].Lista[entrada]; entr{
+			msg = "El sitio ya existe"
+		}else{
+			userEncripted, passEncripted := encriptarUserPass(usuario, usuarioSitio, password)
+			entrada_nueva := Entrada{User: userEncripted, Password: passEncripted, Comentario: comentario}
+			usuarios[usuario].Lista[entrada] = entrada_nueva
+			usuarios_json, err := json.MarshalIndent(usuarios, "", "  ")
+			if err != nil {
+				fmt.Println("Error marshal: ", err)
+			}
+			ioutil.WriteFile("bd.json", usuarios_json, 0644)
+			msg = "Sitio añadido correctamente"
+			ok = true
+			return ok, msg
+		}
+	}else{
+		msg = "El usuario no existe"
+	}
 	return ok, msg
 }
 
 func viewEntry(usuario string, entrada string) Entrada {
 	usuarios := getBaseDatos()
-	for key, value := range usuarios {
-		println(key)
-		if value.Username == usuario {
-			for entry, value := range value.Lista {
-				println(entry)
-				if value.Sitio == entrada {
-					userDesencripted, passDesencripted := desencriptarUserPass(usuario, value.User, value.Password)
-					return Entrada{Sitio: value.Sitio,
-						User:       userDesencripted,
-						Password:   passDesencripted,
-						Comentario: value.Comentario}
-				}
-			}
-		}
+	if value, ok := usuarios[usuario].Lista[entrada]; ok {
+		userDesencripted, passDesencripted := desencriptarUserPass(usuario, value.User, value.Password)
+		return Entrada{User:       userDesencripted,
+									Password:   passDesencripted,
+									Comentario: value.Comentario}
+	}else{
+		return Entrada{User: ".", Password: ".", Comentario: "."}
 	}
-	return Entrada{Sitio: ".", User: ".", Password: ".", Comentario: "."}
 }
 
 func editEntry(usuario string, entrada string, usuarioSitio string, password string, comentario string) Entrada {
 	usuarios := getBaseDatos()
-	indiceUsuario := getIndexUsuario(usuario)
-	indiceEntrada := getIndexLista(usuario, entrada)
-
 	userEncripted, passEncripted := encriptarUserPass(usuario, usuarioSitio, password)
-	entradaNueva := Entrada{Sitio: entrada, User: userEncripted, Password: passEncripted, Comentario: comentario}
-	usuarios[indiceUsuario].Lista[indiceEntrada] = entradaNueva
+	usuarios[usuario].Lista[entrada] = Entrada{
+		User: userEncripted, Password: passEncripted, Comentario: comentario}
+
 	usuarios_json, err := json.MarshalIndent(usuarios, "", "  ")
 	if err != nil {
 		fmt.Println("Error marshal: ", err)
 	}
 	ioutil.WriteFile("bd.json", usuarios_json, 0644)
-	return usuarios[indiceUsuario].Lista[indiceEntrada]
-}
-
-func existsEntry(usuario string, entrada string) bool {
-	usuarios := getBaseDatos()
-	for key, value := range usuarios {
-		println(key)
-		if value.Username == usuario {
-			for entry, value := range value.Lista {
-				println(entry)
-				if value.Sitio == entrada {
-					return true
-				}
-			}
-		}
-	}
-	return false
+	return usuarios[usuario].Lista[entrada]
 }
 
 func deleteEntry(usuario string, entrada string) bool {
 	usuarios := getBaseDatos()
-	for key, value := range usuarios {
-		fmt.Println(key)
-		if value.Username == usuario {
-			for key1, value := range value.Lista {
-				fmt.Println(key1)
-				if value.Sitio == entrada {
-					var indice int
-					indice = getIndexLista(usuario, entrada)
-					if indice == -1 {
-						return false
-					} else {
-						delete(usuarios[getIndexUsuario(usuario)].Lista, indice)
-						usuarios_json, err := json.MarshalIndent(usuarios, "", "  ")
-						if err != nil {
-							fmt.Println("Error marshal: ", err)
-						}
-						ioutil.WriteFile("bd.json", usuarios_json, 0644)
-						return true
-					}
-				}
+	if existsEntry(usuario,entrada){
+			delete(usuarios[usuario].Lista, entrada)
+			usuarios_json, err := json.MarshalIndent(usuarios, "", "  ")
+			if err != nil {
+				fmt.Println("Error marshal: ", err)
 			}
+			ioutil.WriteFile("bd.json", usuarios_json, 0644)
+			return true
 		}
-	}
 	return false
-}
-func getIndexUsuario(usuario string) int {
-	usuarios := getBaseDatos()
-	for key, value := range usuarios {
-		if value.Username == usuario {
-			return key
-		}
-	}
-	return -1
-}
-
-func getIndexLista(usuario string, sitio string) int {
-	usuarios := getBaseDatos()
-	for key, value := range usuarios {
-		fmt.Println(key)
-		if value.Username == usuario {
-			for index, entries := range value.Lista {
-				if entries.Sitio == sitio {
-					return index
-				}
-			}
-		}
-	}
-	return -1
 }
 
 func getUserKey(usuario string) string {
 	usuarios := getBaseDatos()
 	for key, value := range usuarios {
-		fmt.Println(key)
-		if value.Username == usuario {
+		if key == usuario {
 			return value.Key
 		}
 	}
 	return ""
-
 }
 
 func login(user string, password string) bool {
 	usuarios := getBaseDatos()
 	for key, value := range usuarios {
-		if value.Username == user {
+		if key == user {
 			sha_512 := sha512.New()
 			sha_512.Write([]byte(password))
 			pass2 := encode64(sha_512.Sum([]byte(value.Sal)))
 			if value.MasterKey == pass2 {
-				fmt.Print(key)
 				return true
 			}
 		}
@@ -298,15 +227,20 @@ func decode64(s string) []byte {
 	return b                                     // devolvemos los datos originales
 }
 
+func existsEntry(usuario string, entrada string) bool {
+	usuarios := getBaseDatos()
+	if value, ok := usuarios[usuario].Lista[entrada]; ok {
+		fmt.Println(value)
+		return true
+	}
+	return false
+}
+
 func registro(user string, password string) bool {
 	usuarios := getBaseDatos()
-	entradas := map[int]Entrada{}
-
-	for key, value := range usuarios {
-		if value.Username == user {
-			fmt.Println(key)
-			return false
-		}
+	entradas := map[string]Entrada{}
+	if _, ok := usuarios[user]; ok {
+		return false;
 	}
 	salG, error := GenerateRandomString(10)
 	chk(error)
@@ -319,8 +253,8 @@ func registro(user string, password string) bool {
 
 	//entrada_nueva := Entrada{Sitio: "", User: "", Password: "", Comentario: ""}
 	//entradas[0] = entrada_nueva
-	usuario_nuevo := Usuario{Sal: salG, Key: keyG, MasterKey: pass2, Username: user, Lista: entradas}
-	usuarios[len(usuarios)+1] = usuario_nuevo //añadimos el nuevo usuario al map
+	usuario_nuevo := Usuario{Sal: salG, Key: keyG, MasterKey: pass2,Lista: entradas}
+	usuarios[user] = usuario_nuevo //añadimos el nuevo usuario al map
 	usuarios_json, err := json.MarshalIndent(usuarios, "", "  ")
 	if err != nil {
 		fmt.Println("Error marshal: ", err)
@@ -443,9 +377,7 @@ func handler(w http.ResponseWriter, req *http.Request) {
 				if deleteEntry(req.Form.Get("Usuario"), req.Form.Get("Sitio")) {
 					response(w, true, "Entrada eliminada")
 				} else {
-					if deleteEntry(req.Form.Get("Usuario"), req.Form.Get("Sitio")) {
 						response(w, false, "Entrada no eliminada")
-					}
 				}
 
 			}

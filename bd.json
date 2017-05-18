@@ -1,74 +1,43 @@
 {
-  "2": {
-    "Sal": "USLwVgNcTzueIw==",
-    "Key": "Aig-tl74ZeEfDw==",
-    "MasterKey": "VVNMd1ZnTmNUenVlSXc9PTmY24B2A9BY6VQq2wsdpwzVnmFJ3+UH3JNDV6G5NS/IbIT0mtSR1Bu90Q2dUb+xp+37EggLNZ9XlcUGYB5hfsM=",
-    "Username": "qwe",
-    "Lista": {
-      "0": {
-        "Sitio": "lol",
-        "User": "vKucgjrMtRhA0e/XmngMdfC89A==",
-        "Password": "bVENzd9aY5iKDjI+V+/Vl5IwVQ==",
-        "Comentario": "lol"
-      },
-      "1": {
-        "Sitio": "a",
-        "User": "Bj7UAjTRdq8azemsljwSYVY=",
-        "Password": "sLTMUh//24CeJ8jvJDDWYGY=",
-        "Comentario": "a"
-      },
-      "2": {
-        "Sitio": "qw",
-        "User": "3nLrnj/1v3hcn/G+i4jBHrBH",
-        "Password": "r8E4q7xEYYgd3M0yBRn8Z5/A",
-        "Comentario": "qw"
-      }
-    }
-  },
-  "3": {
+  "a": {
     "Sal": "elNOYzCtf0qBow==",
     "Key": "vXH8c2vwSKM2mg==",
     "MasterKey": "ZWxOT1l6Q3RmMHFCb3c9PRWY5qxzZ4X//iCGZxgexRHuRPY35jmvgx6RoxqmF8gc5aPmX0mLX5X+/C6XX8FAuZzzJ5DS+KBhOsTLlqj0T/k=",
-    "Username": "a",
     "Lista": {
-      "0": {
-        "Sitio": "q",
-        "User": "mdg/oAwgNT7yE+Dp5Xy+th4=",
-        "Password": "Z8S/oWKCj7mWI1bmT6PBQrY=",
-        "Comentario": "q"
-      },
-      "1": {
-        "Sitio": "a",
-        "User": "gzmcLbAmVqQq13yH2aM25dc=",
-        "Password": "u1Hx4lqmGRDnetXx8jCgFfc=",
-        "Comentario": "a"
-      },
-      "2": {
-        "Sitio": "qq",
+      "qq": {
         "User": "FnKGJFeO5zXIUiKd++YhuyOk",
         "Password": "49TaMbo3/siTy39nRlZh57Sa",
         "Comentario": "qq"
       }
     }
   },
-  "9": {
+  "d": {
     "Sal": "9ZbWj7oHBoNzjQ==",
     "Key": "",
     "MasterKey": "OVpiV2o3b0hCb056alE9Pd5qw21X2YctGPDr1GsyLJB382zAel5niYm+Q5lX5cDPEqXzsDs97hpFtaR9jEL9e9ntlc1xZnECLYDiHONaEdg=",
-    "Username": "d",
     "Lista": {
-      "0": {
-        "Sitio": "a",
+      "a": {
         "User": "a",
         "Password": "Co26R0o6gKpg1sO0OiOUoj8=",
         "Comentario": "a"
       },
-      "1": {
-        "Sitio": "b",
+      "b": {
         "User": "b",
         "Password": "vcjBNVWXkcHK6JrddAdFJzI=",
         "Comentario": "b"
       }
     }
+  },
+  "qw": {
+    "Sal": "oLyuyayEZCm4QQ==",
+    "Key": "pva5JFo8T7cuPw==",
+    "MasterKey": "b0x5dXlheUVaQ200UVE9Pa/ji9eBbHklhr+dXhr11Iuo+UBoB1Jidtu/1yGcQl0Y0mDH3jo6cUv+m3QbI+HhClM4l63xiB7GfuHArRqWdSQ=",
+    "Lista": {}
+  },
+  "qwe": {
+    "Sal": "WsVt92Yr90mTXA==",
+    "Key": "f1Bb7NSZ0innHg==",
+    "MasterKey": "V3NWdDkyWXI5MG1UWEE9PTmY24B2A9BY6VQq2wsdpwzVnmFJ3+UH3JNDV6G5NS/IbIT0mtSR1Bu90Q2dUb+xp+37EggLNZ9XlcUGYB5hfsM=",
+    "Lista": {}
   }
 }

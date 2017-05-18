@@ -196,10 +196,10 @@ func view() bool {
 		panic(erru)
 	}
 	entrada := respuesta.ValorEntrada
-	if entrada.Sitio != "." {
+	if entrada.User != "." {
 		fmt.Println(respuesta.Ok)
 		fmt.Println("Sitio: ")
-		fmt.Println(entrada.Sitio)
+		fmt.Println(sitio)
 		fmt.Println("User: ")
 		fmt.Println(entrada.User)
 		fmt.Println("Password: ")
@@ -232,8 +232,9 @@ func delete() bool {
 		panic(erru)
 	}
 	if respuesta.Ok {
-		fmt.Println("Borrada: ")
 		return true
+	}else{
+		fmt.Println("No borrada: ")
 	}
 	return false
 
