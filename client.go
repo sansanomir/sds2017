@@ -144,7 +144,7 @@ func comprobarSesion(usuario string) (resultado bool, mensaje string) {
 	return respuesta.Ok, respuesta.Msg
 }
 
-func pedirPassword() string{
+func pedirPassword() string {
 	var opcion int
 	var pass2 string
 	for !(opcion < 3 && opcion > 0) {
@@ -166,12 +166,10 @@ func pedirPassword() string{
 				var tam int
 				fmt.Println("Introduzca el tamaño de la contraseña generada")
 				fmt.Scanf("%d\n", &tam)
-				var contr = RandomString(tam)
+				var contr = RandomPass(tam)
 				fmt.Print("La contraseña es: ")
-				fmt.Println(contr)
-				fmt.Println(encode64(decode64(contr)))
-				//fmt.Println(encode64(decode64(contr)))
-				pass2 = encode64(decode64(contr))
+				fmt.Println(string(contr))
+				pass2 = encode64(contr)
 			}
 		}
 	}
@@ -189,7 +187,6 @@ func add() bool {
 	fmt.Scanf("%s\n", &usuariositio)
 
 	var pass2 = pedirPassword()
-
 	fmt.Print("Introduce un comentario: ")
 	var comentario string
 	fmt.Scanf("%s\n", &comentario)
@@ -269,7 +266,7 @@ func delete() bool {
 	}
 	if respuesta.Ok {
 		return true
-	}else{
+	} else {
 		fmt.Println("No borrada: ")
 	}
 	return false
@@ -418,14 +415,15 @@ func init() {
 	r = rand.New(rand.NewSource(time.Now().UnixNano()))
 }
 
-func RandomString(strlen int) string {
+func RandomPass(strlen int) []byte {
 	const chars = "abcdefghijklmnopqrstuvwxyz0123456789"
 	result := make([]byte, strlen)
 	for i := range result {
 		result[i] = chars[r.Intn(len(chars))]
 	}
-	return encode64(result)
+	return result
 }
+
 func main() {
 	salir := false
 

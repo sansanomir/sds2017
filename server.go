@@ -92,7 +92,6 @@ func decrypt(data, key []byte) (out []byte) {
 }
 
 func encriptarUserPass(usuario string, usuarioSitio string, password string) (string, string) {
-
 	keyClient := sha512.Sum512([]byte(getUserKey(usuario)))
 	keyDataPass := keyClient[32:64]
 	keyDataUser := keyClient[0:32]
@@ -115,11 +114,10 @@ func addEntry(usuario string, entrada string, usuarioSitio string, password stri
 	usuarios := getBaseDatos()
 	ok := false
 	msg := ""
-
 	if _, value := usuarios[usuario]; value {
-		if _, entr := usuarios[usuario].Lista[entrada]; entr{
+		if _, entr := usuarios[usuario].Lista[entrada]; entr {
 			msg = "El sitio ya existe"
-		}else{
+		} else {
 			userEncripted, passEncripted := encriptarUserPass(usuario, usuarioSitio, password)
 			entrada_nueva := Entrada{User: userEncripted, Password: passEncripted, Comentario: comentario}
 			usuarios[usuario].Lista[entrada] = entrada_nueva
@@ -132,7 +130,7 @@ func addEntry(usuario string, entrada string, usuarioSitio string, password stri
 			ok = true
 			return ok, msg
 		}
-	}else{
+	} else {
 		msg = "El usuario no existe"
 	}
 	return ok, msg
@@ -141,12 +139,12 @@ func addEntry(usuario string, entrada string, usuarioSitio string, password stri
 func viewEntry(usuario string, entrada string) Entrada {
 	usuarios := getBaseDatos()
 	if value, ok := usuarios[usuario].Lista[entrada]; ok {
-		
+
 		userDesencripted, passDesencripted := desencriptarUserPass(usuario, value.User, value.Password)
-		return Entrada{User:       userDesencripted,
-									Password:   string(decode64(passDesencripted)),
-									Comentario: value.Comentario}
-	}else{
+		return Entrada{User: userDesencripted,
+			Password:   string(decode64(passDesencripted)),
+			Comentario: value.Comentario}
+	} else {
 		return Entrada{User: ".", Password: ".", Comentario: "."}
 	}
 }
@@ -167,15 +165,15 @@ func editEntry(usuario string, entrada string, usuarioSitio string, password str
 
 func deleteEntry(usuario string, entrada string) bool {
 	usuarios := getBaseDatos()
-	if existsEntry(usuario,entrada){
-			delete(usuarios[usuario].Lista, entrada)
-			usuarios_json, err := json.MarshalIndent(usuarios, "", "  ")
-			if err != nil {
-				fmt.Println("Error marshal: ", err)
-			}
-			ioutil.WriteFile("bd.json", usuarios_json, 0644)
-			return true
+	if existsEntry(usuario, entrada) {
+		delete(usuarios[usuario].Lista, entrada)
+		usuarios_json, err := json.MarshalIndent(usuarios, "", "  ")
+		if err != nil {
+			fmt.Println("Error marshal: ", err)
 		}
+		ioutil.WriteFile("bd.json", usuarios_json, 0644)
+		return true
+	}
 	return false
 }
 
@@ -241,7 +239,7 @@ func registro(user string, password string) bool {
 	usuarios := getBaseDatos()
 	entradas := map[string]Entrada{}
 	if _, ok := usuarios[user]; ok {
-		return false;
+		return false
 	}
 	salG, error := GenerateRandomString(10)
 	chk(error)
@@ -254,7 +252,7 @@ func registro(user string, password string) bool {
 
 	//entrada_nueva := Entrada{Sitio: "", User: "", Password: "", Comentario: ""}
 	//entradas[0] = entrada_nueva
-	usuario_nuevo := Usuario{Sal: salG, Key: keyG, MasterKey: pass2,Lista: entradas}
+	usuario_nuevo := Usuario{Sal: salG, Key: keyG, MasterKey: pass2, Lista: entradas}
 	usuarios[user] = usuario_nuevo //añadimos el nuevo usuario al map
 	usuarios_json, err := json.MarshalIndent(usuarios, "", "  ")
 	if err != nil {
@@ -378,7 +376,7 @@ func handler(w http.ResponseWriter, req *http.Request) {
 				if deleteEntry(req.Form.Get("Usuario"), req.Form.Get("Sitio")) {
 					response(w, true, "Entrada eliminada")
 				} else {
-						response(w, false, "Entrada no eliminada")
+					response(w, false, "Entrada no eliminada")
 				}
 
 			}
@@ -410,9 +408,7 @@ func handler(w http.ResponseWriter, req *http.Request) {
 func main() {
 
 	fmt.Println("Servidor encendido en el puerto 10443...")
-	crearsesion("hola")
 
-	fmt.Println(time.Now().Sub(sesiones["hola"]))
 	stopChan := make(chan os.Signal)
 	signal.Notify(stopChan, os.Interrupt)
 

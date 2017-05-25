@@ -4,10 +4,20 @@
     "Key": "vXH8c2vwSKM2mg==",
     "MasterKey": "ZWxOT1l6Q3RmMHFCb3c9PRWY5qxzZ4X//iCGZxgexRHuRPY35jmvgx6RoxqmF8gc5aPmX0mLX5X+/C6XX8FAuZzzJ5DS+KBhOsTLlqj0T/k=",
     "Lista": {
+      "asd": {
+        "User": "jHoimw8umE1IIl2nwP1lOfxS8w==",
+        "Password": "HK5jikYdayXgY/Bmx6s6bUpNoDU=",
+        "Comentario": "asd"
+      },
       "qq": {
         "User": "FnKGJFeO5zXIUiKd++YhuyOk",
         "Password": "49TaMbo3/siTy39nRlZh57Sa",
         "Comentario": "qq"
+      },
+      "qw": {
+        "User": "9k0cKrH4nn4KIbKe24fTlSBb",
+        "Password": "Y0HDuMI524DY9AHGDfMG8dgXX6QuAO5nIOvq5IoEkh4=",
+        "Comentario": "qw"
       }
     }
   },
