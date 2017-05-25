@@ -259,17 +259,13 @@ func delete() bool {
 
 	body := sendPost(data)
 
-	respuesta := respEntrada{}
+	respuesta := respGeneral{}
 
 	if erru := json.Unmarshal(body, &respuesta); erru != nil {
 		panic(erru)
 	}
-	if respuesta.Ok {
-		return true
-	} else {
-		fmt.Println("No borrada: ")
-	}
-	return false
+	fmt.Println(respuesta.Msg)
+	return respuesta.Ok
 
 }
 func edit() bool {

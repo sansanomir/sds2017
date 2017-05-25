@@ -59,7 +59,32 @@ func comprobarsesion(usuario string) (comp bool, mensaje string) {
 
 }
 
+func setBaseDatos(usuarios_json []byte) {
+	keyClient := sha512.Sum512([]byte("keyparaencriptarlabd"))
+	key := keyClient[32:64]
+	bdencriptada := encrypt(usuarios_json, key)
+	ioutil.WriteFile("bd.json", bdencriptada, 0644)
+}
+
 func getBaseDatos() map[string]Usuario {
+
+	usuarios := map[string]Usuario{}
+	file, err := os.Open("bd.json")
+	chk(err)
+	defer file.Close()
+	str, err := ioutil.ReadAll(file)
+	keyClient := sha512.Sum512([]byte("keyparaencriptarlabd"))
+	key := keyClient[32:64]
+	bddesencriptada := decrypt(str, key)
+	if erru := json.Unmarshal(bddesencriptada, &usuarios); erru != nil {
+		panic(erru)
+	}
+	return usuarios
+}
+
+/*
+func getBaseDatos() map[string]Usuario {
+
 	usuarios := map[string]Usuario{}
 	file, err := os.Open("bd.json")
 	chk(err)
@@ -70,6 +95,7 @@ func getBaseDatos() map[string]Usuario {
 	}
 	return usuarios
 }
+*/
 
 func encrypt(data, key []byte) (out []byte) {
 	out = make([]byte, len(data)+16)    // reservamos espacio para el IV al principio
@@ -125,7 +151,7 @@ func addEntry(usuario string, entrada string, usuarioSitio string, password stri
 			if err != nil {
 				fmt.Println("Error marshal: ", err)
 			}
-			ioutil.WriteFile("bd.json", usuarios_json, 0644)
+			setBaseDatos(usuarios_json)
 			msg = "Sitio añadido correctamente"
 			ok = true
 			return ok, msg
@@ -159,7 +185,7 @@ func editEntry(usuario string, entrada string, usuarioSitio string, password str
 	if err != nil {
 		fmt.Println("Error marshal: ", err)
 	}
-	ioutil.WriteFile("bd.json", usuarios_json, 0644)
+	setBaseDatos(usuarios_json)
 	return usuarios[usuario].Lista[entrada]
 }
 
@@ -171,7 +197,7 @@ func deleteEntry(usuario string, entrada string) bool {
 		if err != nil {
 			fmt.Println("Error marshal: ", err)
 		}
-		ioutil.WriteFile("bd.json", usuarios_json, 0644)
+		setBaseDatos(usuarios_json)
 		return true
 	}
 	return false
@@ -259,7 +285,7 @@ func registro(user string, password string) bool {
 		fmt.Println("Error marshal: ", err)
 	}
 
-	ioutil.WriteFile("bd.json", usuarios_json, 0644)
+	setBaseDatos(usuarios_json)
 
 	return true
 }
