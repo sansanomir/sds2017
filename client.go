@@ -8,11 +8,13 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"math/rand"
 	"net/http"
 	"net/url"
 	"os"
 
 	"github.com/howeyc/gopass"
+	"time"
 )
 
 type Entrada struct {
@@ -142,6 +144,40 @@ func comprobarSesion(usuario string) (resultado bool, mensaje string) {
 	return respuesta.Ok, respuesta.Msg
 }
 
+func pedirPassword() string{
+	var opcion int
+	var pass2 string
+	for !(opcion < 3 && opcion > 0) {
+		fmt.Println("1-Introducir contraseña")
+		fmt.Println("2-Generar contraseña aleatoria")
+
+		fmt.Scanf("%d\n", &opcion)
+
+		switch opcion {
+		case 1:
+			{
+				fmt.Print("Introduce password: ")
+				password, err := gopass.GetPasswd()
+				chk(err)
+				pass2 = encode64(password)
+			}
+		case 2:
+			{
+				var tam int
+				fmt.Println("Introduzca el tamaño de la contraseña generada")
+				fmt.Scanf("%d\n", &tam)
+				var contr = RandomString(tam)
+				fmt.Print("La contraseña es: ")
+				fmt.Println(contr)
+				fmt.Println(encode64(decode64(contr)))
+				//fmt.Println(encode64(decode64(contr)))
+				pass2 = encode64(decode64(contr))
+			}
+		}
+	}
+	return pass2
+}
+
 func add() bool {
 
 	fmt.Println("--- Añadir nueva cuenta ---")
@@ -151,9 +187,9 @@ func add() bool {
 	fmt.Print("Introduce usuario: ")
 	var usuariositio string
 	fmt.Scanf("%s\n", &usuariositio)
-	fmt.Print("Introduce password: ")
-	var password string
-	fmt.Scanf("%s\n", &password)
+
+	var pass2 = pedirPassword()
+
 	fmt.Print("Introduce un comentario: ")
 	var comentario string
 	fmt.Scanf("%s\n", &comentario)
@@ -163,7 +199,7 @@ func add() bool {
 	data.Set("Usuario", usuario)
 	data.Set("Sitio", sitio)
 	data.Set("Usuariositio", usuariositio)
-	data.Set("Password", password)
+	data.Set("Password", pass2)
 	data.Set("Comentario", comentario)
 	body := sendPost(data)
 	respuesta := respGeneral{}
@@ -261,9 +297,8 @@ func edit() bool {
 		fmt.Print("Introduce usuario: ")
 		var usuariositio string
 		fmt.Scanf("%s\n", &usuariositio)
-		fmt.Print("Introduce password: ")
-		var password string
-		fmt.Scanf("%s\n", &password)
+		var pass2 = pedirPassword()
+
 		fmt.Print("Introduce un comentario: ")
 		var comentario string
 		fmt.Scanf("%s\n", &comentario)
@@ -273,7 +308,7 @@ func edit() bool {
 		data.Set("Usuario", usuario)
 		data.Set("Sitio", sitio)
 		data.Set("Usuariositio", usuariositio)
-		data.Set("Password", password)
+		data.Set("Password", pass2)
 		data.Set("Comentario", comentario)
 		body := sendPost(data)
 		respuesta := respGeneral{}
@@ -343,6 +378,12 @@ func encode64(data []byte) string {
 	return base64.StdEncoding.EncodeToString(data) // sólo utiliza caracteres "imprimibles"
 }
 
+func decode64(s string) []byte {
+	b, err := base64.StdEncoding.DecodeString(s) // recupera el formato original
+	chk(err)                                     // comprobamos el error
+	return b                                     // devolvemos los datos originales
+}
+
 func registro() bool {
 	fmt.Println("--- Registrarse: ---")
 	fmt.Print("Introduce usuario: ")
@@ -371,9 +412,23 @@ func registro() bool {
 	return true
 }
 
-func main() {
+var r *rand.Rand // Rand for this package.
 
+func init() {
+	r = rand.New(rand.NewSource(time.Now().UnixNano()))
+}
+
+func RandomString(strlen int) string {
+	const chars = "abcdefghijklmnopqrstuvwxyz0123456789"
+	result := make([]byte, strlen)
+	for i := range result {
+		result[i] = chars[r.Intn(len(chars))]
+	}
+	return encode64(result)
+}
+func main() {
 	salir := false
+
 	for salir == false {
 		opcion := menu()
 

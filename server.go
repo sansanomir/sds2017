@@ -141,9 +141,10 @@ func addEntry(usuario string, entrada string, usuarioSitio string, password stri
 func viewEntry(usuario string, entrada string) Entrada {
 	usuarios := getBaseDatos()
 	if value, ok := usuarios[usuario].Lista[entrada]; ok {
+		
 		userDesencripted, passDesencripted := desencriptarUserPass(usuario, value.User, value.Password)
 		return Entrada{User:       userDesencripted,
-									Password:   passDesencripted,
+									Password:   string(decode64(passDesencripted)),
 									Comentario: value.Comentario}
 	}else{
 		return Entrada{User: ".", Password: ".", Comentario: "."}
