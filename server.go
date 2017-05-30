@@ -8,6 +8,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/howeyc/gopass"
 	"io"
 	"io/ioutil"
 	"log"
@@ -31,6 +32,7 @@ type Usuario struct {
 }
 
 var userNameSession string
+var claveBD string
 var sesiones = map[string]time.Time{"usuario": time.Now()}
 
 func crearsesion(usuario string) {
@@ -60,7 +62,7 @@ func comprobarsesion(usuario string) (comp bool, mensaje string) {
 }
 
 func setBaseDatos(usuarios_json []byte) {
-	keyClient := sha512.Sum512([]byte("keyparaencriptarlabd"))
+	keyClient := sha512.Sum512([]byte(claveBD))
 	key := keyClient[32:64]
 	bdencriptada := encrypt(usuarios_json, key)
 	ioutil.WriteFile("bd.json", bdencriptada, 0644)
@@ -70,32 +72,29 @@ func getBaseDatos() map[string]Usuario {
 
 	usuarios := map[string]Usuario{}
 	file, err := os.Open("bd.json")
-	chk(err)
+	if err != nil {
+		fmt.Println("Error al abrir la base de datos. No se encuentra el archivo bd.json.")
+	}
 	defer file.Close()
 	str, err := ioutil.ReadAll(file)
-	keyClient := sha512.Sum512([]byte("keyparaencriptarlabd"))
+
+	keyClient := sha512.Sum512([]byte(claveBD))
 	key := keyClient[32:64]
 	bddesencriptada := decrypt(str, key)
-	if erru := json.Unmarshal(bddesencriptada, &usuarios); erru != nil {
-		panic(erru)
+	erru := json.Unmarshal(bddesencriptada, &usuarios)
+	for erru != nil {
+		fmt.Println("Error en la password del servidor. ")
+		fmt.Print("Introduce la password: ")
+		password, err := gopass.GetPasswd()
+		chk(err)
+		claveBD = string(password)
+		keyClient := sha512.Sum512([]byte(claveBD))
+		key := keyClient[32:64]
+		bddesencriptada := decrypt(str, key)
+		erru = json.Unmarshal(bddesencriptada, &usuarios)
 	}
 	return usuarios
 }
-
-/*
-func getBaseDatos() map[string]Usuario {
-
-	usuarios := map[string]Usuario{}
-	file, err := os.Open("bd.json")
-	chk(err)
-	defer file.Close()
-	str, err := ioutil.ReadAll(file)
-	if erru := json.Unmarshal(str, &usuarios); erru != nil {
-		panic(erru)
-	}
-	return usuarios
-}
-*/
 
 func encrypt(data, key []byte) (out []byte) {
 	out = make([]byte, len(data)+16)    // reservamos espacio para el IV al principio
@@ -335,7 +334,7 @@ func handler(w http.ResponseWriter, req *http.Request) {
 			mensaje := ""
 			if registro(req.Form.Get("Usuario"), req.Form.Get("Password")) {
 				fmt.Println("Registro ok")
-				mensaje = "Usuario: " + req.Form.Get("Usuario") + ", Password: " + req.Form.Get("Password")
+				mensaje = "Usuario: " + req.Form.Get("Usuario") + " se ha registrado correctamente."
 				response(w, true, mensaje)
 			} else {
 				fmt.Println("Error en el registro")
@@ -433,6 +432,10 @@ func handler(w http.ResponseWriter, req *http.Request) {
 
 func main() {
 
+	fmt.Print("Introduce la password: ")
+	password, err := gopass.GetPasswd()
+	chk(err)
+	claveBD = string(password)
 	fmt.Println("Servidor encendido en el puerto 10443...")
 
 	stopChan := make(chan os.Signal)

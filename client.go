@@ -6,14 +6,11 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io"
+	"github.com/howeyc/gopass"
 	"io/ioutil"
 	"math/rand"
 	"net/http"
 	"net/url"
-	"os"
-
-	"github.com/howeyc/gopass"
 	"time"
 )
 
@@ -394,15 +391,14 @@ func registro() bool {
 	data.Set("cmd", "Registro")
 	data.Set("Usuario", usuario) // comando (string)
 	data.Set("Password", pass2)  // usuario (string)
-	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	body := sendPost(data)
+	respuesta := respGeneral{}
+	if erru := json.Unmarshal(body, &respuesta); erru != nil {
+		panic(erru)
 	}
-	client := &http.Client{Transport: tr}
-	r, err := client.PostForm("https://localhost:10443", data) // enviamos por POST
-	chk(err)
-	io.Copy(os.Stdout, r.Body) // mostramos el cuerpo de la respuesta (es un reader)
+	fmt.Println(respuesta.Msg)
+	return respuesta.Ok
 
-	return true
 }
 
 var r *rand.Rand // Rand for this package.
